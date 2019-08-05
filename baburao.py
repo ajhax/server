@@ -6,7 +6,7 @@ import sys
 import json
 from datetime import datetime, timezone
 import logging
-
+import werkzeug
 
 app = Flask(__name__)
 log = logging.getLogger('werkzeug')
@@ -27,6 +27,8 @@ parser.add_argument('username', type=str)
 parser.add_argument('network', type=str)
 parser.add_argument('cpu', type=str)
 parser.add_argument('ram', type=str)
+parser.add_argument(
+    'file', type=werkzeug.datastructures.FileStorage, location="files")
 
 
 class InitEP(Resource):
@@ -98,9 +100,20 @@ class NewEP(Resource):
         return "ok", 200
 
 
+class UploadEP(Resource):
+    def post(self, machine_id):
+        args = parser.parse_args()
+        machine_file = args['file']
+        machine_file.filename = werkzeug.utils.secure_filename(
+            machine_file.filename)
+        machine_file.save(machine_file.filename)
+        return 'ok', 201
+
+
 api.add_resource(InitEP, '/shyaam/<string:machine_id>')
 api.add_resource(NewEP, '/shyaam/<string:machine_id>/new')
 api.add_resource(QueueEP, '/shyaam/<string:machine_id>/queue')
+api.add_resource(UploadEP, '/shyaam/<string:machine_id>/upload')
 
 
 if __name__ == '__main__':
