@@ -7,6 +7,8 @@ import json
 from datetime import datetime, timezone
 import logging
 import werkzeug
+from base64 import b64decode
+from hashlib import md5
 
 app = Flask(__name__)
 log = logging.getLogger('werkzeug')
@@ -76,13 +78,27 @@ class QueueEP(Resource):
         args = parser.parse_args()
         task_id = args['taskId']
         if 'ok' in args['status']:
-            print(
-                repr(f"Response from {machine_id}, task {task_id} : {args['body']}\n"))
             lock.acquire(True)
-            db.c.execute(
-                'UPDATE queue SET isComplete="true" WHERE taskId=?', (task_id, ))
-            db.conn.commit()
+            db.c.execute('SELECT task FROM queue where taskID=?', (task_id, ))
+            task = db.c.findall()
             lock.release()
+            if 'screenshot' in task:
+                body = args['body']
+                image = b64decode(body)
+                image_hash = md5(image).hexdigest()
+                image_name = f'{image_hash}.png'
+                with open(image_name, 'wb') as fp:
+                    fp.write(image)
+                print(
+                    f"Saved Screenshot from {machine_id}, task {task_id} to {image_name}\n")
+            else:
+                print(
+                    f"Response from {machine_id}, task {task_id} : {repr(args['body'])}\n")
+                lock.acquire(True)
+                db.c.execute(
+                    'UPDATE queue SET isComplete="true" WHERE taskId=?', (task_id, ))
+                db.conn.commit()
+                lock.release()
             return "ok", 200
         else:
             print(f"Error from {machine_id}, task {task_id}: {args['errors']}")
