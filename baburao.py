@@ -77,7 +77,7 @@ class QueueEP(Resource):
         task_id = args['taskId']
         if 'ok' in args['status']:
             print(
-                f"Response from {machine_id}, task {task_id} : {args['body']}\n")
+                repr(f"Response from {machine_id}, task {task_id} : {args['body']}\n"))
             lock.acquire(True)
             db.c.execute(
                 'UPDATE queue SET isComplete="true" WHERE taskId=?', (task_id, ))
