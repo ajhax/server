@@ -80,7 +80,7 @@ class QueueEP(Resource):
         if 'ok' in args['status']:
             lock.acquire(True)
             db.c.execute('SELECT task FROM queue where taskID=?', (task_id, ))
-            task = db.c.findall()
+            task = db.c.fetchone()
             lock.release()
             if 'screenshot' in task:
                 body = args['body']
